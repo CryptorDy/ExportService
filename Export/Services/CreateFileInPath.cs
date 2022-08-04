@@ -26,22 +26,36 @@ namespace Export
 
         private void CreateToPath(object[][] data, Setting setting)
         {
-            var index = 1;
-            while (true)
-            {
-                if (Directory.Exists(setting.Path + "\\" + setting.Folder))
-                    Directory.CreateDirectory(setting.Path + "\\" + setting.Folder + "()");
+            var path = setting.Path + "\\" + setting.Folder;
 
-                index++;
-            }
-            
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
-            using (FileStream fs = File.Create(setting.Path))
-            {
-                byte[] info = new UTF8Encoding(true).GetBytes("This is some text in the file.");
-                // Add some information to the file.
-                fs.Write(info, 0, info.Length);
-            }
+
+            var fileCount = data.Length / setting.Records;
+
+            //if (setting.Records > 0)
+            //{
+            //    for (int i = 0; i < fileCount; i++)
+            //    {
+            //        using (FileStream fs = File.Create(path + "\\" + setting.FileName + DateTime.Now.ToString("ddMMyyyy") + "_" + i + ".csv"))
+            //        {
+            //            byte[] info = new UTF8Encoding(true).GetBytes("This is some text in the file.");
+            //            // Add some information to the file.
+            //            fs.Write(info, 0, info.Length);
+            //        }
+            //    }
+            //}
+            //else
+            //{
+                using (FileStream fs = File.Create(path + "\\" + setting.FileName + DateTime.Now.ToString("ddMMyyyy") + ".csv"))
+                {
+                    byte[] info = new UTF8Encoding(true).GetBytes("This is some text in the file.");
+                    // Add some information to the file.
+                    fs.Write(info, 0, info.Length);
+                }
+            //}
+
         }
 
         private void CreateToSftp(object[][] data, Setting setting)
@@ -94,6 +108,6 @@ namespace Export
             return result;
         }
 
-        
+
     }
 }

@@ -108,14 +108,14 @@ namespace ExportService
             var orderBy = tableSetting.OrderBy;
             var limit = tableSetting.Limit;
 
-            string query = $"Select {select} from {name} ";
+            string query = $"Select {select} from {name}";
 
             query += BuildWhereStr(where);
 
             query += BuildOrderByStr(orderBy);
 
-            if (limit == string.Empty)
-                query += " limit " + limit;
+            if (limit != string.Empty)
+                query = $"Select {select} from ({query}) where ROWNUM <= " + limit;
 
             return new SettingQuery
             {
@@ -131,7 +131,7 @@ namespace ExportService
             var query = string.Empty;
             if (where != null && where.Count > 0)
             {
-                query += $"where ";
+                query += $" where ";
                 int i = 0;
                 foreach (WhereElement item in where)
                 {

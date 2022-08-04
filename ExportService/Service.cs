@@ -72,7 +72,7 @@ namespace ExportService
         /// </summary>
         private void ExecuteByHour(int hour, string query, Setting setting)
         {
-            m_timer.Interval = hour * 1000 * 1000 * 60;
+            m_timer.Interval = hour * 1000 * 60 * 60;
 
             m_timer.Elapsed += new ElapsedEventHandler((s, e) => export.Execute(query, setting));
         }

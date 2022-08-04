@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" Name="ExportServiceSetup" Language="1033" Version="1.0.0.0" Manufacturer="Developer" UpgradeCode="631263f4-704c-4a2f-941e-b4d83acbeafa">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+		<Media Id="1"
+			   Cabinet="media.cab"
+			   EmbedCab="yes"
+			   DiskPrompt="CD-ROM #1" />
+		<Property Id="DiskPrompt"
+				  Value="InstallerForBlazorApp CD-ROM #1" />
+			
+
+		<Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" ></Property>
+		<UIRef Id="WixUI_InstallDir"/>
+
+		<Feature Id="ProductFeature"
+             Title="Installer"
+             Level="1"
+             ConfigurableDirectory="INSTALLFOLDER"
+             AllowAdvertise="no"
+             Absent='disallow'>
+			<ComponentGroupRef Id="PublishedComponents" />
+			<!--<ComponentGroupRef Id="ServiceInstaller" />-->
+		</Feature>
+
+
+	</Product>
+
+
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">
+				<Directory Id="INSTALLFOLDER" Name="InstallExportService" />
+			</Directory>
+		</Directory>
+	</Fragment>
+
+	<Fragment>
+		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+			<!-- TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. -->
+			<Component Id="ProductComponent"> 
+				<File 
+				  Id="WindowsServiceEXE" 
+				  Name="WindowsService.exe" 
+				  DiskId="1"
+				  Source="$(var.ExportService.TargetPath)" 
+				  Vital="yes" 
+				  KeyPath="yes" />
+				
+				<ServiceInstall Id="ServiceInstaller" 
+								Type="ownProcess" 
+								Vital="yes"
+								Name="MyWindowsService" 
+								DisplayName="MyWindowsService"
+								Description="Example Windows Service" Start="auto"
+								Account="LocalSystem" 
+								ErrorControl="normal"
+								Arguments=" /start ExportService" 
+								Interactive="no" />
+        
+				<ServiceControl Id="StartService"  Stop="both" Start="install" Remove="uninstall"
+						Name="ExportService" Wait="yes" />
+
+			</Component>
+		</ComponentGroup>
+	</Fragment>
+		
+	<!--<Fragment>
+		<ComponentGroup Id="ServiceInstaller" Directory="INSTALLFOLDER">
+			<Component Guid="F7E041AB-3227-4272-92C1-4A12635F39AF" Id="ddd">
+				<RemoveFile Id="cmp646930CA1885B8CA883A1241AEAC577D" Name="ExportService.exe" On="uninstall"/>
+			</Component>
+			<Component Guid="F7E041AB-3227-4272-92C1-4A12685F30AF" >
+				<File Source="$(var.ExportService.TargetDir)ExportService.exe" KeyPath="yes"/>
+				<ServiceInstall Id="ServiceInstaller"
+								  Type="ownProcess"
+								  Name="CMartWinService"
+								  DisplayName="CMart Windows Service"
+								  Description="Super awesome service used as a cog in the effort to take over the world"
+								  Start="auto"
+								  ErrorControl="normal"
+								  Account="LocalSystem"/>
+				<ServiceControl Id="StartService" Start="install" Stop="both" Remove="uninstall" Name="CMartWinService" Wait="yes" />
+			</Component>
+		</ComponentGroup>
+	</Fragment>-->
+	
+</Wix>

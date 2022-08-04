@@ -42,6 +42,7 @@ namespace Export
                     j++;
                 }
 
+                var last = data[99999]; 
                 sws.Stop();
 
                 Console.WriteLine(sws.ElapsedTicks + " " + sws.ElapsedMilliseconds);

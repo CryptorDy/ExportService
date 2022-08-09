@@ -44,7 +44,6 @@ namespace Export
                 int j = 0;
                 data[j] = output;
 
-
                 while (reader.Read())
                 {
                     j++;

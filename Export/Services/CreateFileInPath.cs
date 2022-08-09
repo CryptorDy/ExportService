@@ -16,37 +16,44 @@ namespace Export
         public bool Start(object[][] data, Setting setting)
         {
             var path = setting.Path + "\\" + setting.Folder;
-            //var pathSFTP = setting.Path;
-            var fileCount = 0;
 
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
+            //Если указано ограниченное количество записей в одном файле, то определяем количество файлов
 
-            if (setting.Records == 0)
+            var countRecords = 0;
+            int fileCount = 0;
+            if (setting.Records <= 0)
+            {
+                countRecords = data.Length;
                 fileCount = 1;
-            else
+            } else if(setting.Records > 0)
+            {
+                countRecords = setting.Records;
+                //Все записи делим на количество записей в одном файле
+                //Минус один чтобы не считать строку с названиями столбцов
                 fileCount = (int)Math.Ceiling((data.Length - 1) / (double)setting.Records);
+            }
 
-
-            var countRecords = setting.Records == 0 ? data.Length : setting.Records;
             string[] records;
 
-            int k = 1;
+            int dataIndex = 1;
             for (int i = 0; i < fileCount; i++)
             {
                 records = new string[countRecords + 1];
-                records[0] = string.Join(";", data[0]);
+                records[0] = GetNameTables(data);
 
                 for (int j = 1; j < records.Length; j++)
                 {
-                    var record = string.Join(";", data[k]);
-                    records[j] = record;
-                    k++;
+                    records[j] = RecordToString(data[dataIndex]);
+                    dataIndex++;
 
-                    if (k == data.Length)
+                    if (dataIndex == data.Length)
                         break;
                 }
+
+                //Создание файла
                 if (setting.Sftp)
                     CreateToSftp(records, i, path, setting.FileName, setting);
                 else
@@ -57,65 +64,44 @@ namespace Export
             return true;
         }
 
-
-
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="records"></param>
+        /// <param name="fileNumber"></param>
+        /// <param name="path"></param>
+        /// <param name="fileName"></param>
+        /// <param name="setting"></param>
+        /// <exception cref="Exception"></exception>
         private void CreateToSftp(string[] records, int fileNumber, string path, string fileName, Setting setting)
         {
-
-            string remoteDirectory = "/";
-
-            string host = @"10.100.0.57";
-            string username = "esn";
-            string password = "QQRs5hh1jz";
-
-            //using (SftpClient sftp = new SftpClient(setting.Host, setting.Login, setting.Pass))
-            using (SftpClient sftp = new SftpClient(host, username, password))
+            SftpClient sftp = new SftpClient(setting.Host, setting.Login, setting.Pass);
+            
+            try
             {
-                try
+                sftp.Connect();
+            }
+            catch
+            {
+                throw new Exception("Ошибка подключения к SFTP серверу");
+            }
+
+            var bytes = Encoding.Default.GetBytes(string.Join(Environment.NewLine, records));
+
+            using (var ms = new MemoryStream(bytes))
+            {
+                //Если записи деляться на несколько файлов, то сохраняем с нумерацией в названии файла
+                if (fileNumber == 0)
                 {
-                    sftp.Connect();
-
-                    var bytes = Encoding.Default.GetBytes(string.Join(Environment.NewLine, records));
-
-                    if (fileNumber == 0)
-                    {
-                       
-                        using (var ms = new MemoryStream(bytes))
-                        {
-                            sftp.BufferSize = (uint)ms.Length;
-                            //ms.Position = 0;
-                            sftp.UploadFile(ms, fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv");
-                        }
-
-                        using (Stream fileStream = File.Create(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv"))
-                        {
-                            sftp.DownloadFile(remoteDirectory + fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv", fileStream);
-                        }
-                    }
-
-                    else if (fileNumber > 0)
-                    {
-
-                        using (var ms = new MemoryStream(bytes))
-                        {
-                            sftp.BufferSize = (uint)ms.Length;
-                            //ms.Position = 0;
-                            sftp.UploadFile(ms, fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv");
-                        }
-
-                        using (Stream fileStream = File.Create(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv"))
-                        {
-                            sftp.DownloadFile(remoteDirectory + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv", fileStream);
-                        }
-                    }
-
-                    sftp.Disconnect();
+                    UploadFile(sftp, ms, fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv");
                 }
-                catch (Exception e)
+                else if (fileNumber > 0)
                 {
-                    Console.WriteLine("An exception has been caught " + e.ToString());
+                    UploadFile(sftp, ms, fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv");
                 }
             }
+
+            sftp.Disconnect();
         }
 
         private void CreateToPath(string[] records, int fileNumber, string path, string fileName)
@@ -125,6 +111,47 @@ namespace Export
 
             else if (fileNumber > 0)
                 File.WriteAllLines(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv", records, Encoding.UTF8);
+        }
+
+
+        /// <summary>
+        /// Конвертация массива в одну строку
+        /// </summary>
+        /// <param name="data">Массив данных одной записи</param>
+        /// <returns>Строка разделенная знаком ";"</returns>
+        private string RecordToString(object[] data)
+        {
+            return string.Join(";", data);
+        }
+
+        /// <summary>
+        /// Возврат названий таблицы в одной стороке
+        /// </summary>
+        /// <param name="data">Массив данных</param>
+        /// <returns>Строка разделенная знаком ";"</returns>
+        private string GetNameTables(object[][] data)
+        {
+            return string.Join(";", data[0]);
+        }
+
+        /// <summary>
+        /// Загрузка файлы в SFTP
+        /// </summary>
+        /// <param name="sftp"></param>
+        /// <param name="ms"></param>
+        /// <param name="fileName"></param>
+        private void UploadFile(SftpClient sftp, MemoryStream ms, string fileName)
+        {
+            try
+            {
+                sftp.BufferSize = (uint)ms.Length;
+                sftp.UploadFile(ms, fileName);
+            }
+            catch
+            {
+                throw new Exception("Ошибка при загрузке файла в SFTP");
+            }
+            
         }
 
     }

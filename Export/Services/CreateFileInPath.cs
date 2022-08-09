@@ -16,7 +16,7 @@ namespace Export
         public bool Start(object[][] data, Setting setting)
         {
             var path = setting.Path + "\\" + setting.Folder;
-            var pathSFTP = setting.Path;
+            //var pathSFTP = setting.Path;
             var fileCount = 0;
 
             if (!Directory.Exists(path))
@@ -48,7 +48,7 @@ namespace Export
                         break;
                 }
                 if (setting.Sftp)
-                    CreateToSftp(records, i, path, setting.FileName);
+                    CreateToSftp(records, i, path, setting.FileName, setting);
                 else
                     CreateToPath(records, i, path, setting.FileName);
 
@@ -59,7 +59,7 @@ namespace Export
 
 
 
-        private void CreateToSftp(string[] records, int fileNumber, string path, string fileName)
+        private void CreateToSftp(string[] records, int fileNumber, string path, string fileName, Setting setting)
         {
 
             string remoteDirectory = "/";
@@ -75,12 +75,11 @@ namespace Export
                 {
                     sftp.Connect();
 
-                    var bytes = Encoding.UTF8.GetBytes(string.Join(Environment.NewLine, records));
+                    var bytes = Encoding.Default.GetBytes(string.Join(Environment.NewLine, records));
 
                     if (fileNumber == 0)
                     {
-                      
-
+                       
                         using (var ms = new MemoryStream(bytes))
                         {
                             sftp.BufferSize = (uint)ms.Length;

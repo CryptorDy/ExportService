@@ -12,6 +12,7 @@ using System.Threading.Tasks;
 using System.IO;
 using System.Timers;
 using Export;
+using NLog;
 
 namespace ExportService
 {
@@ -22,13 +23,22 @@ namespace ExportService
 
         Timer m_timer;
 
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public Service(IExport export)
         {
             this.export = export;
 
             InitializeComponent();
 
-            ExecuteExport();
+            try
+            {
+                ExecuteExport();
+            } catch (Exception ex)
+            {
+                logger.Error(ex);
+            }
+            
         }
 
 
@@ -75,6 +85,8 @@ namespace ExportService
         {
             m_timer.Interval = hour * 1000 * 60 * 60;
 
+            logger.Debug($"Выполнение в интервале {hour} час");
+
             m_timer.Elapsed += new ElapsedEventHandler((s, e) => export.Execute(query, setting));
         }
 
@@ -84,6 +96,8 @@ namespace ExportService
         private void ExecuteByDay(int day, string time, string query, Setting setting)
         {
             m_timer.Interval = GetMillisecondsNextTime(day, time);
+
+            logger.Debug($"Выполнение в {time} каждый {day} день");
 
             m_timer.Elapsed += new ElapsedEventHandler((s, e) => ExecuteAndUpdateInterval(day, time, query, setting));
         }

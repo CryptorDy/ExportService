@@ -114,7 +114,7 @@ namespace ExportService
 
             query += BuildOrderByStr(orderBy);
 
-            if (limit != string.Empty)
+            if (limit != 0)
                 query = $"Select {select} from ({query}) where ROWNUM <= " + limit;
 
             return new SettingQuery
@@ -122,7 +122,8 @@ namespace ExportService
                 SqlQuery = query,
                 FileName = tableSetting.File.Name,
                 Folder = tableSetting.Folder,
-                Records = tableSetting.File.Records
+                Records = tableSetting.File.Records,
+                DataCount = tableSetting.Limit
             };
         }
 

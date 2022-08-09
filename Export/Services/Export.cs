@@ -38,7 +38,7 @@ namespace Export
         /// <returns>True - если выгрузка удалась успешно, иначе False</returns>
         public bool Execute(string sqlQuery, Setting setting)
         {
-            var result = query.Execute(sqlQuery);
+            var result = query.Execute(sqlQuery, setting.DataCount);
 
             if (result is null) throw new Exception("Запрос не вернул данные");
 

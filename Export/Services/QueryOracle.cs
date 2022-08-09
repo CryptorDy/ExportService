@@ -13,9 +13,14 @@ namespace Export
 {
     public class QueryOracle : IQuery
     {
-        public object[][] Execute(string query)
+        /// <summary>
+        /// Максимальное количество записей получаемых за одно обращение к БД
+        /// </summary>
+        private int _maxDataCount = 500000;
+
+        public object[][] Execute(string query, int dataCount)
         {
-            object[][] data; 
+            object[][] data;
 
             OracleDataReader reader;
             var connectionString = ConfigurationManager.ConnectionStrings["OTCS"].ConnectionString;
@@ -25,8 +30,10 @@ namespace Export
                 connection.Open();
                 reader = command.ExecuteReader();
 
+                reader.FetchSize = reader.RowSize * _maxDataCount;
+
                 object[] output = new object[reader.FieldCount];
-                data = new object[reader.FetchSize][];
+                data = new object[dataCount + 1][];
 
                 Stopwatch sws = new Stopwatch();
                 sws.Start();
@@ -34,15 +41,17 @@ namespace Export
                 for (int i = 0; i < reader.FieldCount; i++)
                     output[i] = reader.GetName(i);
 
-                int j = 1;
+                int j = 0;
+                data[j] = output;
+
+
                 while (reader.Read())
                 {
-                    reader.GetValues(output);
-                    data[j] = output;
                     j++;
+                    data[j] = new object[reader.FieldCount];
+                    reader.GetValues(data[j]);
                 }
 
-                var last = data[99999]; 
                 sws.Stop();
 
                 Console.WriteLine(sws.ElapsedTicks + " " + sws.ElapsedMilliseconds);
@@ -51,6 +60,6 @@ namespace Export
             return data;
         }
 
-        
+
     }
 }

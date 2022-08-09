@@ -30,10 +30,10 @@ namespace ExportService
             set { this["select"] = value; }
         }
 
-        [ConfigurationProperty("limit", IsRequired = false)]
-        public string Limit
+        [ConfigurationProperty("limit", DefaultValue = 0, IsRequired = false)]
+        public int Limit
         {
-            get { return (string)this["limit"]; }
+            get { return (int)this["limit"]; }
             set { this["limit"] = value; }
         }
 

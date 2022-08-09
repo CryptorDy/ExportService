@@ -43,6 +43,7 @@ namespace ExportService
                 Setting setting = new Setting();
                 setting.FileName = table.FileName;
                 setting.Records = table.Records;
+                setting.DataCount = table.DataCount;
                 setting.Folder = table.Folder;
                 setting.Path = settingExecution.ExportPath.Path;
                 setting.Sftp = settingExecution.ExportPath.Sftp;

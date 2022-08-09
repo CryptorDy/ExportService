@@ -31,7 +31,7 @@ namespace ExportService
 #else
             ServiceBase[] services = new ServiceBase[1]
 			{
-				container.Resolve<Service>();
+				container.Resolve<Service>()
 			};
 			ServiceBase.Run(services);
 #endif

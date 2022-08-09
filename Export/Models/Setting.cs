@@ -32,6 +32,11 @@ namespace Export
         public int Records { get; set; }
 
         /// <summary>
+        /// Общее количество строк
+        /// </summary>
+        public int DataCount { get; set; }
+
+        /// <summary>
         /// Включен sftp
         /// </summary>
         public bool Sftp { get; set; }

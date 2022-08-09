@@ -15,75 +15,98 @@ namespace Export
 
         public bool Start(object[][] data, Setting setting)
         {
-            if (setting.Sftp)
-                CreateToSftp(data, setting);
-            else
-                CreateToPath(data, setting);
-
-            return true;
-        }
-
-
-        private void CreateToPath(object[][] data, Setting setting)
-        {
             var path = setting.Path + "\\" + setting.Folder;
+            //var pathSFTP = setting.Path;
+            var fileCount = 0;
 
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
 
-            var fileCount = data.Length / setting.Records;
+            if (setting.Records == 0)
+                fileCount = 1;
+            else
+                fileCount = (int)Math.Ceiling((data.Length - 1) / (double)setting.Records);
 
-            //if (setting.Records > 0)
-            //{
-            //    for (int i = 0; i < fileCount; i++)
-            //    {
-            //        using (FileStream fs = File.Create(path + "\\" + setting.FileName + DateTime.Now.ToString("ddMMyyyy") + "_" + i + ".csv"))
-            //        {
-            //            byte[] info = new UTF8Encoding(true).GetBytes("This is some text in the file.");
-            //            // Add some information to the file.
-            //            fs.Write(info, 0, info.Length);
-            //        }
-            //    }
-            //}
-            //else
-            //{
-                using (FileStream fs = File.Create(path + "\\" + setting.FileName + DateTime.Now.ToString("ddMMyyyy") + ".csv"))
+
+            var countRecords = setting.Records == 0 ? data.Length : setting.Records;
+            string[] records;
+
+            int k = 1;
+            for (int i = 0; i < fileCount; i++)
+            {
+                records = new string[countRecords + 1];
+                records[0] = string.Join(";", data[0]);
+
+                for (int j = 1; j < records.Length; j++)
                 {
-                    byte[] info = new UTF8Encoding(true).GetBytes("This is some text in the file.");
-                    // Add some information to the file.
-                    fs.Write(info, 0, info.Length);
-                }
-            //}
+                    var record = string.Join(";", data[k]);
+                    records[j] = record;
+                    k++;
 
+                    if (k == data.Length)
+                        break;
+                }
+                if (setting.Sftp)
+                    CreateToSftp(records, i, path, setting.FileName, setting);
+                else
+                    CreateToPath(records, i, path, setting.FileName);
+
+            }
+
+            return true;
         }
 
-        private void CreateToSftp(object[][] data, Setting setting)
+
+
+        private void CreateToSftp(string[] records, int fileNumber, string path, string fileName, Setting setting)
         {
-            string host = @"141.8.192.151";
-            string username = "f0682093";
-            string password = "uzpeuhxain";
 
-            string remoteDirectory = "\\";
+            string remoteDirectory = "/";
 
+            string host = @"10.100.0.57";
+            string username = "esn";
+            string password = "QQRs5hh1jz";
+
+            //using (SftpClient sftp = new SftpClient(setting.Host, setting.Login, setting.Pass))
             using (SftpClient sftp = new SftpClient(host, username, password))
             {
                 try
                 {
                     sftp.Connect();
 
-                    var files = sftp.ListDirectory(remoteDirectory);
-                    string s = null;
+                    var bytes = Encoding.Default.GetBytes(string.Join(Environment.NewLine, records));
 
-                    //var destinationFile = Path.Combine(" ", "ff");
-                    //using (var fs = new FileStream(destinationFile, FileMode.Create)) 
-                    //{
-                    //    sftp.DownloadFile(remoteDirectory, fs);
-                    //}
-
-                    foreach (var file in files)
+                    if (fileNumber == 0)
                     {
-                        Console.WriteLine(file.Name);
+                       
+                        using (var ms = new MemoryStream(bytes))
+                        {
+                            sftp.BufferSize = (uint)ms.Length;
+                            //ms.Position = 0;
+                            sftp.UploadFile(ms, fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv");
+                        }
+
+                        using (Stream fileStream = File.Create(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv"))
+                        {
+                            sftp.DownloadFile(remoteDirectory + fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv", fileStream);
+                        }
+                    }
+
+                    else if (fileNumber > 0)
+                    {
+
+                        using (var ms = new MemoryStream(bytes))
+                        {
+                            sftp.BufferSize = (uint)ms.Length;
+                            //ms.Position = 0;
+                            sftp.UploadFile(ms, fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv");
+                        }
+
+                        using (Stream fileStream = File.Create(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv"))
+                        {
+                            sftp.DownloadFile(remoteDirectory + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv", fileStream);
+                        }
                     }
 
                     sftp.Disconnect();
@@ -95,19 +118,14 @@ namespace Export
             }
         }
 
-        public void WriteToFile(string[] data)
+        private void CreateToPath(string[] records, int fileNumber, string path, string fileName)
         {
-            var dataByte = GetBytes(data);
+            if (fileNumber == 0)
+                File.WriteAllLines(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv", records, Encoding.UTF8);
 
+            else if (fileNumber > 0)
+                File.WriteAllLines(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv", records, Encoding.UTF8);
         }
-
-        static byte[] GetBytes(string[] values)
-        {
-            var result = new byte[values.Length * sizeof(double)];
-            Buffer.BlockCopy(values, 0, result, 0, result.Length);
-            return result;
-        }
-
 
     }
 }

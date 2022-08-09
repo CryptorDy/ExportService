@@ -30,5 +30,10 @@ namespace ExportService
         /// Количество записей в одном файле
         /// </summary>
         public int Records { get; set; }
+
+        /// <summary>
+        /// Общее количество строк
+        /// </summary>
+        public int DataCount { get; set; }
     }
 }

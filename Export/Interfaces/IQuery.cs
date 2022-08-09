@@ -9,6 +9,6 @@ namespace Export
 {
     public interface IQuery
     {
-        object[][] Execute(string query);
+        object[][] Execute(string query, int dataCount);
     }
 }

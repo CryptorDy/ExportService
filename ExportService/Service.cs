@@ -43,12 +43,13 @@ namespace ExportService
                 Setting setting = new Setting();
                 setting.FileName = table.FileName;
                 setting.Records = table.Records;
+                setting.DataCount = table.DataCount;
                 setting.Folder = table.Folder;
                 setting.Path = settingExecution.ExportPath.Path;
                 setting.Sftp = settingExecution.ExportPath.Sftp;
                 setting.Host = settingExecution.ExportPath.Host;
                 setting.Login = settingExecution.ExportPath.Login;
-                setting.Pass = settingExecution.ExportPath.Login;
+                setting.Pass = settingExecution.ExportPath.Pass;
 
                 if (settingExecution.NowExport.On)
                     new System.Threading.Thread(() => export.Execute(table.SqlQuery, setting)).Start();

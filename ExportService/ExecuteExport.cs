@@ -38,7 +38,7 @@ namespace ExportService
                 setting.Sftp = settingExecution.ExportPath.Sftp;
                 setting.Host = settingExecution.ExportPath.Host;
                 setting.Login = settingExecution.ExportPath.Login;
-                setting.Pass = settingExecution.ExportPath.Login;
+                setting.Pass = settingExecution.ExportPath.Pass;
 
                 if (settingExecution.NowExport.On)
                     new System.Threading.Thread(() => export.Execute(query.SqlQuery, setting));

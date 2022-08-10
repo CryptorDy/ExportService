@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Data.SqlClient;
 using System.Data.Common;
 using System.Diagnostics;
+using NLog;
 
 namespace Export
 {
@@ -18,9 +19,13 @@ namespace Export
         /// </summary>
         private int _maxDataCount = 500000;
 
+        private static Logger logger = LogManager.GetCurrentClassLogger();
+
         public object[][] Execute(string query, int dataCount)
         {
             object[][] data;
+
+            logger.Debug($"Начало получения данных по запросу: {query}");
 
             OracleDataReader reader;
             var connectionString = ConfigurationManager.ConnectionStrings["OTCS"].ConnectionString;
@@ -53,7 +58,7 @@ namespace Export
 
                 sws.Stop();
 
-                Console.WriteLine(sws.ElapsedTicks + " " + sws.ElapsedMilliseconds);
+                logger.Debug($"Получено {data.Length} строк за {sws.ElapsedMilliseconds} милисекунд");
 
             }
             return data;

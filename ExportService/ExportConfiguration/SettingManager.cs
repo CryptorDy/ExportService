@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace ExportService
@@ -102,17 +103,23 @@ namespace ExportService
         private SettingQuery BuilderSqlQuery(ConfigurationSection section)
         {
             TableSection tableSetting = section as TableSection;
+            
             var name = tableSetting.Name;
             var select = tableSetting.Select != string.Empty ? tableSetting.Select : "*";
             var where = tableSetting.Where;
             var orderBy = tableSetting.OrderBy;
             var limit = tableSetting.Limit;
 
-            string query = $"Select {select} from {name}";
+            CheckWord(name);
+            CheckSelect(select);
+
+            var query = $"Select {select} from {name}";
 
             query += BuildWhereStr(where);
 
             query += BuildOrderByStr(orderBy);
+
+            
 
             if (limit != 0)
                 query = $"Select {select} from ({query}) where ROWNUM <= " + limit;
@@ -136,9 +143,10 @@ namespace ExportService
                 int i = 0;
                 foreach (WhereElement item in where)
                 {
-                    if (i != 0 && item.Operator != String.Empty)
+                    if (i != 0 && !string.IsNullOrWhiteSpace(item.Operator) && (item.Operator.Trim().Equals("OR") || item.Operator.Trim().Equals("AND")))
                         query += $" {item.Operator} ";
-                    query += item.Condition;
+                    if (CheckWhere(item.Condition))
+                        query += item.Condition;
 
                     i++;
                 }
@@ -158,14 +166,117 @@ namespace ExportService
                     if (i != 0)
                         query += ",";
 
-                    string desc = item.Desc ? "DESC" : string.Empty;
-                    query += $" {item.Column} {desc}";
-
+                    if (CheckWord(item.Column))
+                    {
+                        string desc = item.Desc ? "DESC" : string.Empty;
+                        query += $" {item.Column} {desc}";
+                    }
                     i++;
                 }
             }
 
             return query;
+        }
+
+        private bool CheckWord(string str)
+        {
+            if (SqlKeywords().Any(c => str.Contains(c)))
+                throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
+
+            if (!Regex.Match(str, @"^[a-zA-Z_\s]{1,20}$").Success)
+                throw new Exception($"Строка {str} содержит недопустимые символы");
+
+            return true;
+        }
+
+        private bool CheckWhere(string str)
+        {
+            if (SqlKeywords().Any(c => str.Contains(c)))
+                throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
+
+            if (!Regex.Match(str, @"^[a-zA-Z\s]+[\=|>=|<=]{1,2}[\sa-zA-Z0-9]{1,}$").Success)
+                throw new Exception($"Строка {str} содержит недопустимые символы");
+
+            return true;
+        }
+
+        private bool CheckSelect(string str)
+        {
+            if (str.Equals("*"))
+                return true;
+
+            if (SqlKeywords().Any(c => str.Contains(c)))
+                throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
+
+            if (!Regex.Match(str, @"^[a-zA-Z,\s]{1,}$").Success)
+                throw new Exception($"Строка {str} содержит недопустимые символы");
+
+            return true;
+        }
+
+        private string[] SqlKeywords()
+        {
+            return new string[] {
+                "ADD",
+                "CONSTRAINT",
+                "ALL",
+                "ALTER",
+                "TABLE",
+                "AND",
+                "ANY",
+                "AS",
+                "ASC",
+                "BACKUP DATABASE",
+                "BETWEEN",
+                "CASE",
+                "CHECK",
+                "COLUMN",
+                "CONSTRAINT",
+                "CREATE",
+                "DATABASE",
+                "PROCEDURE",
+                "UNIQUE",
+                "INDEX",
+                "VIEW",
+                "DEFAULT",
+                "DELETE",
+                "DESC",
+                "DISTINCT",
+                "DROP",
+                "EXEC",
+                "EXISTS",
+                "FOREIGN",
+                "KEY",
+                "FROM",
+                "FULL",
+                "OUTER",
+                "JOIN",
+                "GROUP",
+                "BY",
+                "HAVING",
+                "IN",
+                "INNER",
+                "INSERT",
+                "INTO",
+                "SELECT",
+                "IS",
+                "NULL",
+                "NOT",
+                "LIKE",
+                "LIMIT",
+                "OR",
+                "AND",
+                "ORDER",
+                "PRIMARY",
+                "PROCEDURE",
+                "RIGHT",
+                "LEFT",
+                "TOP",
+                "VALUES",
+                "UPDATE",
+                "ROWNUM",
+                "SET"
+            };
         }
     }
 }

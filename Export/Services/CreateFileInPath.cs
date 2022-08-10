@@ -1,4 +1,5 @@
-﻿using Renci.SshNet;
+﻿using NLog;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Data.Common;
@@ -12,9 +13,12 @@ namespace Export
 {
     public class CreateFileInPath : IImplementationData
     {
+        private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public bool Start(object[][] data, Setting setting)
         {
+            logger.Debug($"Начало сохранения данных по пути {setting.Path}");
+
             var path = setting.Path + "\\" + setting.Folder;
 
             if (!Directory.Exists(path))
@@ -35,6 +39,8 @@ namespace Export
                 //Минус один чтобы не считать строку с названиями столбцов
                 fileCount = (int)Math.Ceiling((data.Length - 1) / (double)setting.Records);
             }
+
+            logger.Debug($"Количество файлов {fileCount} по {countRecords} строк в каждом файле");
 
             string[] records;
 
@@ -93,11 +99,15 @@ namespace Export
                 //Если записи деляться на несколько файлов, то сохраняем с нумерацией в названии файла
                 if (fileNumber == 0)
                 {
-                    UploadFile(sftp, ms, fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv");
+                    fileName += DateTime.Now.ToString("ddMMyyyy") + ".csv";
+                    UploadFile(sftp, ms, setting.Folder +"/"+ fileName);
+                    logger.Debug($"Файл {fileName} загружен в SFTP по пути {setting.Folder}");
                 }
                 else if (fileNumber > 0)
                 {
-                    UploadFile(sftp, ms, fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv");
+                    fileName += DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv";
+                    UploadFile(sftp, ms, setting.Folder + "/" + fileName);
+                    logger.Debug($"Файл {fileName} загружен в SFTP по пути {setting.Folder}");
                 }
             }
 

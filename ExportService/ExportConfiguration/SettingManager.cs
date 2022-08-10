@@ -183,7 +183,7 @@ namespace ExportService
             if (SqlKeywords().Any(c => str.Contains(c)))
                 throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
 
-            if (!Regex.Match(str, @"^[a-zA-Z_\s]{1,20}$").Success)
+            if (!Regex.Match(str, @"^[a-zA-Z_]{1,25}$").Success)
                 throw new Exception($"Строка {str} содержит недопустимые символы");
 
             return true;
@@ -194,7 +194,7 @@ namespace ExportService
             if (SqlKeywords().Any(c => str.Contains(c)))
                 throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
 
-            if (!Regex.Match(str, @"^[a-zA-Z\s]+[\=|>=|<=]{1,2}[\sa-zA-Z0-9]{1,}$").Success)
+            if (!Regex.Match(str, @"^[a-zA-Z_\s]+[\=|>=|<=]{1,2}[\sa-zA-Z0-9]{1,}$").Success)
                 throw new Exception($"Строка {str} содержит недопустимые символы");
 
             return true;

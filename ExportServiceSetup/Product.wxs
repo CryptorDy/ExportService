@@ -16,6 +16,7 @@
              ConfigurableDirectory="INSTALLFOLDER"
              AllowAdvertise="no"
              Absent='disallow'>
+			<ComponentGroupRef Id="PublishedComponents" />
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 
@@ -39,7 +40,7 @@
 								Vital="yes"
 								Name="ExportService" 
 								DisplayName="ExportService"
-								Description="Service for unloading data from the database" 
+								Description="Examplws Service" 
 								Start="auto"
 								Account="LocalSystem" 
 								ErrorControl="normal"
@@ -49,6 +50,7 @@
 				<ServiceControl Id="StartService"  Stop="both" Start="install" Remove="uninstall"
 						Name="ExportService" Wait="yes" />
 			</Component>
+				
 		</ComponentGroup>
 	</Fragment>
 	

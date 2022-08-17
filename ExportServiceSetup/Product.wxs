@@ -16,7 +16,6 @@
              ConfigurableDirectory="INSTALLFOLDER"
              AllowAdvertise="no"
              Absent='disallow'>
-			<!--<ComponentGroupRef Id="PublishedComponents" />-->
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 
@@ -32,16 +31,16 @@
 
 	<Fragment>
 		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
-			<!-- TODO: Remove the comments around this Component element and the ComponentRef below in order to add resources to this installer. -->
 			<Component Id="ProductComponent"> 
-				<File  Id="ExportServiceEXE" Name="ExportService.exe" DiskId="1" Source="$(var.ExportService.TargetPath)" Vital="yes" KeyPath="yes" />
+				<File  Id="ExportServiceEXE" Name="ExportService.exe" Source="$(var.ExportService.TargetPath)" Vital="yes" KeyPath="yes" />
 
 				<ServiceInstall Id="ServiceInstaller" 
 								Type="ownProcess" 
 								Vital="yes"
 								Name="ExportService" 
 								DisplayName="ExportService"
-								Description="Examplws Service" Start="auto"
+								Description="Service for unloading data from the database" 
+								Start="auto"
 								Account="LocalSystem" 
 								ErrorControl="normal"
 								Arguments=" /start ExportService" 
@@ -49,7 +48,6 @@
         
 				<ServiceControl Id="StartService"  Stop="both" Start="install" Remove="uninstall"
 						Name="ExportService" Wait="yes" />
-
 			</Component>
 		</ComponentGroup>
 	</Fragment>

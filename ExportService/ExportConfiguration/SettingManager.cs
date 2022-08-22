@@ -180,6 +180,7 @@ namespace ExportService
 
         private bool CheckWord(string str)
         {
+
             if (SqlKeywords().Any(c => str.Contains(c)))
                 throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
 
@@ -191,7 +192,10 @@ namespace ExportService
 
         private bool CheckWhere(string str)
         {
-            if (SqlKeywords().Any(c => str.Contains(c)))
+
+            var words = SplitToWords(str);
+
+            if (SqlKeywords().Any(c => words.Any(x => x.Equals(c))))
                 throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
 
             if (!Regex.Match(str, @"^[a-zA-Z_\s]+[\=|>=|<=]{1,2}[\sa-zA-Z0-9]{1,}$").Success)
@@ -212,6 +216,14 @@ namespace ExportService
                 throw new Exception($"Строка {str} содержит недопустимые символы");
 
             return true;
+        }
+
+        private string[] SplitToWords(string str)
+        {
+            str = str.Replace("  ", " ");
+            str = str.Replace("   ", " ");
+
+            return str.Split(new char[] { ' ' });
         }
 
         private string[] SqlKeywords()

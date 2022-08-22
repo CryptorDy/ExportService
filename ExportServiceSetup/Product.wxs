@@ -40,7 +40,7 @@
 								Vital="yes"
 								Name="ExportService" 
 								DisplayName="ExportService"
-								Description="Examplws Service" 
+								Description="Service for unloading data from the database" 
 								Start="auto"
 								Account="LocalSystem" 
 								ErrorControl="normal"

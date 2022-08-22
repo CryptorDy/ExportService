@@ -56,6 +56,9 @@ namespace Export
                     reader.GetValues(data[j]);
                 }
 
+                //Удаляем все пустые ячейки
+                data = data.Where(c => c != null).ToArray();
+
                 sws.Stop();
 
                 logger.Debug($"Получено {data.Length} строк за {sws.ElapsedMilliseconds} милисекунд");

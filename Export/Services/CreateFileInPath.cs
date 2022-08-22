@@ -32,6 +32,10 @@ namespace Export
             {
                 countRecords = data.Length;
                 fileCount = 1;
+            } else if (setting.Records > data.Length)
+            {
+                countRecords = data.Length;
+                fileCount = 1;
             } else if(setting.Records > 0)
             {
                 countRecords = setting.Records;

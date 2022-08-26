@@ -96,7 +96,11 @@ namespace ExportService
         private void ExecuteByDay(int day, string time, string query, Setting setting)
         {
             //Таймер сегодня в указанное время
-            m_timer.Interval = GetMillisecondsNextTime(0, time);
+            if (GetMillisecondsNextTime(0, time) > 0)
+                m_timer.Interval = GetMillisecondsNextTime(0, time);
+            else
+                m_timer.Interval = GetMillisecondsNextTime(day, time);
+
 
             logger.Debug($"Выполнение в {time} каждый {day} день");
 

@@ -31,9 +31,9 @@ namespace ExportService
         }
 
         [ConfigurationProperty("limit", DefaultValue = 0, IsRequired = false)]
-        public int Limit
+        public int? Limit
         {
-            get { return (int)this["limit"]; }
+            get { return (int?)this["limit"]; }
             set { this["limit"] = value; }
         }
 

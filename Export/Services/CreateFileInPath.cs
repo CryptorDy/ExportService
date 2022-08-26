@@ -17,12 +17,9 @@ namespace Export
 
         public bool Start(object[][] data, Setting setting)
         {
-            logger.Debug($"Начало сохранения данных по пути {setting.Path}");
+            logger.Debug($"Начало сохранения данных");
 
-            var path = setting.Path + "\\" + setting.Folder;
-
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
+            var path = setting.Path + "/" + setting.Folder;
 
             //Если указано ограниченное количество записей в одном файле, то определяем количество файлов
 
@@ -48,28 +45,36 @@ namespace Export
 
             string[] records;
 
-            int dataIndex = 1;
-            for (int i = 0; i < fileCount; i++)
+            try
             {
-                records = new string[countRecords + 1];
-                records[0] = GetNameTables(data);
-
-                for (int j = 1; j < records.Length; j++)
+                int dataIndex = 1;
+                for (int i = 0; i < fileCount; i++)
                 {
-                    records[j] = RecordToString(data[dataIndex]);
-                    dataIndex++;
+                    records = new string[countRecords + 1];
+                    records[0] = GetNameTables(data);
 
-                    if (dataIndex == data.Length)
-                        break;
+                    for (int j = 1; j < records.Length; j++)
+                    {
+                        records[j] = RecordToString(data[dataIndex]);
+                        dataIndex++;
+
+                        if (dataIndex == data.Length)
+                            break;
+                    }
+
+                    //Создание файла
+                    if (setting.Sftp)
+                        CreateToSftp(records, i, path, setting.FileName, setting);
+                    else
+                        CreateToPath(records, i, path, setting.FileName);
+
                 }
-
-                //Создание файла
-                if (setting.Sftp)
-                    CreateToSftp(records, i, path, setting.FileName, setting);
-                else
-                    CreateToPath(records, i, path, setting.FileName);
-
             }
+            catch (Exception ex)
+            {
+                logger.Debug("---" + ex.Message);
+            }
+            
 
             return true;
         }
@@ -86,33 +91,32 @@ namespace Export
         private void CreateToSftp(string[] records, int fileNumber, string path, string fileName, Setting setting)
         {
             SftpClient sftp = new SftpClient(setting.Host, setting.Login, setting.Pass);
-            
+
             try
             {
                 sftp.Connect();
             }
             catch
             {
-                throw new Exception("Ошибка подключения к SFTP серверу");
+                logger.Debug($"Ошибка подключения к SFTP серверу");
             }
 
+            if(!sftp.Exists(path))
+                sftp.CreateDirectory(path);
+            
             var bytes = Encoding.Default.GetBytes(string.Join(Environment.NewLine, records));
 
             using (var ms = new MemoryStream(bytes))
             {
                 //Если записи деляться на несколько файлов, то сохраняем с нумерацией в названии файла
                 if (fileNumber == 0)
-                {
                     fileName += DateTime.Now.ToString("ddMMyyyy") + ".csv";
-                    UploadFile(sftp, ms, setting.Folder +"/"+ fileName);
-                    logger.Debug($"Файл {fileName} загружен в SFTP по пути {setting.Folder}");
-                }
                 else if (fileNumber > 0)
-                {
                     fileName += DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv";
-                    UploadFile(sftp, ms, setting.Folder + "/" + fileName);
-                    logger.Debug($"Файл {fileName} загружен в SFTP по пути {setting.Folder}");
-                }
+                
+
+                UploadFile(sftp, ms, path + "/" + fileName);
+                logger.Debug($"Файл {fileName} загружен в SFTP по пути {path}");
             }
 
             sftp.Disconnect();
@@ -120,11 +124,20 @@ namespace Export
 
         private void CreateToPath(string[] records, int fileNumber, string path, string fileName)
         {
-            if (fileNumber == 0)
-                File.WriteAllLines(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv", records, Encoding.UTF8);
+            if (!Directory.Exists(path))
+                Directory.CreateDirectory(path);
 
+            string file = string.Empty;
+            if (fileNumber == 0)
+                file = path + "/" + fileName + DateTime.Now.ToString("ddMMyyyy") + ".csv";
             else if (fileNumber > 0)
-                File.WriteAllLines(path + "\\" + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv", records, Encoding.UTF8);
+                file = path + "/" + fileName + DateTime.Now.ToString("ddMMyyyy") + "_" + (fileNumber + 1) + ".csv";
+            
+
+            File.WriteAllLines(file, records, Encoding.UTF8);
+
+
+            logger.Debug($"Файл {fileName} загружен по пути {file}");
         }
 
 
@@ -163,7 +176,7 @@ namespace Export
             }
             catch
             {
-                throw new Exception("Ошибка при загрузке файла в SFTP");
+                logger.Debug($"Ошибка при загрузке файла в SFTP");
             }
             
         }

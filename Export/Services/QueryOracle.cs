@@ -21,10 +21,11 @@ namespace Export
 
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        object[][] data;
+
         public object[][] Execute(string query, int dataCount)
         {
-            object[][] data;
-
+            
             logger.Debug($"Начало получения данных по запросу: {query}");
 
             OracleDataReader reader;
@@ -38,7 +39,7 @@ namespace Export
                 reader.FetchSize = reader.RowSize * _maxDataCount;
 
                 object[] output = new object[reader.FieldCount];
-                data = new object[dataCount + 1][];
+                InitData(dataCount);
 
                 Stopwatch sws = new Stopwatch();
                 sws.Start();
@@ -52,6 +53,9 @@ namespace Export
                 while (reader.Read())
                 {
                     j++;
+
+                    CheckResizeArray(j);
+
                     data[j] = new object[reader.FieldCount];
                     reader.GetValues(data[j]);
                 }
@@ -67,6 +71,26 @@ namespace Export
             return data;
         }
 
+        /// <summary>
+        /// Проверка индекса на превышение длины массива
+        /// </summary>
+        private void CheckResizeArray(int index)
+        {
+            if (index > data.Length - 1)
+                Array.Resize(ref data, data.Length + 500000);
+        }
+
+        /// <summary>
+        /// Инициализация массива данных
+        /// </summary>
+        /// <param name="count">Количество значений</param>
+        private void InitData(int count)
+        {
+            if (count == 0)
+                count = 1000000;
+
+            data = new object[count + 1][];
+        }
 
     }
 }

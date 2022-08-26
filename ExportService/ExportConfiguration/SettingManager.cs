@@ -108,7 +108,7 @@ namespace ExportService
             var select = tableSetting.Select != string.Empty ? tableSetting.Select : "*";
             var where = tableSetting.Where;
             var orderBy = tableSetting.OrderBy;
-            var limit = tableSetting.Limit;
+            var limit = tableSetting.Limit.Value;
 
             CheckWord(name);
             CheckSelect(select);
@@ -119,9 +119,7 @@ namespace ExportService
 
             query += BuildOrderByStr(orderBy);
 
-            
-
-            if (limit != 0)
+            if (limit > 0)
                 query = $"Select {select} from ({query}) where ROWNUM <= " + limit;
 
             return new SettingQuery
@@ -130,7 +128,7 @@ namespace ExportService
                 FileName = tableSetting.File.Name,
                 Folder = tableSetting.Folder,
                 Records = tableSetting.File.Records,
-                DataCount = tableSetting.Limit
+                DataCount = limit
             };
         }
 

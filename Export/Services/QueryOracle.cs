@@ -12,6 +12,9 @@ using NLog;
 
 namespace Export
 {
+    /// <summary>
+    /// Выполнение запроса и получение данных из БД Oracle
+    /// </summary>
     public class QueryOracle : IQuery
     {
         /// <summary>
@@ -19,10 +22,22 @@ namespace Export
         /// </summary>
         private int _maxDataCount = 500000;
 
+        /// <summary>
+        /// Сервис логгирования
+        /// </summary>
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        /// <summary>
+        /// Полученные данные
+        /// </summary>
         object[][] data;
 
+        /// <summary>
+        /// Выполнение запроса
+        /// </summary>
+        /// <param name="query">Строка sql запроса</param>
+        /// <param name="dataCount">Максимальное количество данных</param>
+        /// <returns></returns>
         public object[][] Execute(string query, int dataCount)
         {
             
@@ -44,6 +59,7 @@ namespace Export
                 Stopwatch sws = new Stopwatch();
                 sws.Start();
 
+                //Заполнение названий полей
                 for (int i = 0; i < reader.FieldCount; i++)
                     output[i] = reader.GetName(i);
 
@@ -72,12 +88,13 @@ namespace Export
         }
 
         /// <summary>
-        /// Проверка индекса на превышение длины массива
+        /// Проверка индекса на переполнение массива данных
+        /// Если переполнен, то увеличить длину на 50%
         /// </summary>
         private void CheckResizeArray(int index)
         {
             if (index > data.Length - 1)
-                Array.Resize(ref data, data.Length + 500000);
+                Array.Resize(ref data, (int)(data.Length * 0.5));
         }
 
         /// <summary>

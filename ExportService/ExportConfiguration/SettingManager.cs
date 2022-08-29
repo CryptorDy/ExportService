@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace ExportService
 {
+    /// <summary>
+    /// Менеджер конфигурационных настроек
+    /// </summary>
     public class SettingManager
     {
 
@@ -20,6 +23,9 @@ namespace ExportService
                 throw new Exception("Ошибка чтения конфигурационного файла");
         }
 
+        /// <summary>
+        /// Получить настройки выполнения
+        /// </summary>
         public SettingExecution GetSetting()
         {
             var setting = new SettingExecution();
@@ -46,6 +52,7 @@ namespace ExportService
                 }
             }
 
+            //Выполнение по часам имеет приоритет
             if (IsExecuteByHour)
             {
                 setting.IsExecuteByHour = IsExecuteByHour;
@@ -61,19 +68,27 @@ namespace ExportService
             return setting;
         }
 
-        public List<SettingQuery> GetSettingTable()
+        /// <summary>
+        /// Получить коллекцию с настройками запросов
+        /// </summary>
+        public List<SettingQuery> GetSettingQueries()
         {
-            var tables = new List<SettingQuery>();
+            var queries = new List<SettingQuery>();
             foreach (ConfigurationSection section in _setting.Sections)
             {
                 if (section.GetType() == typeof(TableSection))
                 {
-                    tables.Add(BuilderSqlQuery(section));
+                    queries.Add(GetSettingQuery(section));
                 }
             }
-            return tables;
+            return queries;
         }
 
+        /// <summary>
+        /// Получить настройки выполнения по дням
+        /// </summary>
+        /// <param name="section">Секция данных</param>
+        /// <param name="IsExecuteByDay">Выходной аргумент. Включен выполнение по дням</param>
         private ExecuteByDay GetExecuteByDay(ConfigurationSection section, out bool IsExecuteByDay)
         {
             var executeByDay = section as ExecuteByDay;
@@ -84,9 +99,14 @@ namespace ExportService
             }
 
             IsExecuteByDay = true;
-            return new ExecuteByDay { Day = executeByDay.Day, Time = executeByDay.Time };
+            return executeByDay;
         }
 
+        /// <summary>
+        /// Получить настройки выполнения по часам
+        /// </summary>
+        /// <param name="section">Секция данных</param>
+        /// <param name="IsExecuteByHour">Выходной аргумент. Включен выполнение по часам</param>
         private ExecuteByHour GetExecuteByHour(ConfigurationSection section, out bool IsExecuteByHour)
         {
             var executeByHour = section as ExecuteByHour;
@@ -97,30 +117,21 @@ namespace ExportService
             }
 
             IsExecuteByHour = true;
-            return new ExecuteByHour { Hour = executeByHour.Hour };
+            return executeByHour;
         }
 
-        private SettingQuery BuilderSqlQuery(ConfigurationSection section)
+        /// <summary>
+        /// Получить настройки запроса
+        /// </summary>
+        /// <param name="section">Секция с конфигурационными настройками</param>
+        /// <returns>Настройки запроса со стракой запроса</returns>
+        private SettingQuery GetSettingQuery(ConfigurationSection section)
         {
             TableSection tableSetting = section as TableSection;
-            
-            var name = tableSetting.Name;
-            var select = tableSetting.Select != string.Empty ? tableSetting.Select : "*";
-            var where = tableSetting.Where;
-            var orderBy = tableSetting.OrderBy;
+
             var limit = tableSetting.Limit.Value;
 
-            CheckWord(name);
-            CheckSelect(select);
-
-            var query = $"Select {select} from {name}";
-
-            query += BuildWhereStr(where);
-
-            query += BuildOrderByStr(orderBy);
-
-            if (limit > 0)
-                query = $"Select {select} from ({query}) where ROWNUM <= " + limit;
+            var query = new SqlBuilder().Builde(tableSetting);
 
             return new SettingQuery
             {
@@ -132,6 +143,11 @@ namespace ExportService
             };
         }
 
+        /// <summary>
+        /// Формирование части Where
+        /// </summary>
+        /// <param name="where">Настройки Where</param>
+        /// <returns>Строка части сортировки Where</returns>
         private string BuildWhereStr(WhereElementCollection where)
         {
             var query = string.Empty;
@@ -143,8 +159,8 @@ namespace ExportService
                 {
                     if (i != 0 && !string.IsNullOrWhiteSpace(item.Operator) && (item.Operator.Trim().Equals("OR") || item.Operator.Trim().Equals("AND")))
                         query += $" {item.Operator} ";
-                    if (CheckWhere(item.Condition))
-                        query += item.Condition;
+                    //if (CheckWhere(item.Condition))
+                    //    query += item.Condition;
 
                     i++;
                 }
@@ -152,6 +168,11 @@ namespace ExportService
             return query;
         }
 
+        /// <summary>
+        /// Формирование части OrderBy
+        /// </summary>
+        /// <param name="orderBy">Настройки OrderBy</param>
+        /// <returns>Строка части сортировки OrderBy</returns>
         private string BuildOrderByStr(OrderByElementCollection orderBy)
         {
             var query = string.Empty;

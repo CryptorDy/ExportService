@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+	<Product Id="*" Name="ExportServiceSetup" Language="1033" Version="1.0.0.0" Manufacturer="Developer" UpgradeCode="631263f4-704c-4a2f-941e-b4d83acbeafa">
+		<Package InstallerVersion="200" Compressed="yes" InstallScope="perMachine" />
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+		<Media Id="1" Cabinet="main.cab" EmbedCab="yes" />
+			
+		<Property Id="WIXUI_INSTALLDIR" Value="INSTALLFOLDER" ></Property>
+		<UIRef Id="WixUI_InstallDir"/>
+
+		<Feature Id="ProductFeature"
+             Title="Installer"
+             Level="1"
+             ConfigurableDirectory="INSTALLFOLDER"
+             AllowAdvertise="no"
+             Absent='disallow'>
+			<ComponentGroupRef Id="PublishedComponents" />
+			<ComponentGroupRef Id="ProductComponents" />
+		</Feature>
+
+	</Product>
+
+	<Fragment>
+		<Directory Id="TARGETDIR" Name="SourceDir">
+			<Directory Id="ProgramFilesFolder">
+				<Directory Id="INSTALLFOLDER" Name="InstallExportService" />
+			</Directory>
+		</Directory>
+	</Fragment>
+
+	<Fragment>
+		<ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+			<Component Id="ProductComponent"> 
+				<File  Id="ExportServiceEXE" Name="ExportService.exe" Source="$(var.ExportService.TargetPath)" Vital="yes" KeyPath="yes" />
+
+				<ServiceInstall Id="ServiceInstaller" 
+								Type="ownProcess" 
+								Vital="yes"
+								Name="ExportService" 
+								DisplayName="ExportService"
+								Description="Service for unloading data from the database" 
+								Start="auto"
+								Account="LocalSystem" 
+								ErrorControl="normal"
+								Arguments=" /start ExportService" 
+								Interactive="no" />
+        
+				<ServiceControl Id="StartService"  Stop="both" Start="install" Remove="uninstall"
+						Name="ExportService" Wait="yes" />
+			</Component>
+				
+		</ComponentGroup>
+	</Fragment>
+	
+</Wix>

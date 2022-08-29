@@ -16,6 +16,7 @@
              ConfigurableDirectory="INSTALLFOLDER"
              AllowAdvertise="no"
              Absent='disallow'>
+			<ComponentGroupRef Id="PublishedComponents" />
 			<ComponentGroupRef Id="ProductComponents" />
 		</Feature>
 
@@ -49,6 +50,7 @@
 				<ServiceControl Id="StartService"  Stop="both" Start="install" Remove="uninstall"
 						Name="ExportService" Wait="yes" />
 			</Component>
+				
 		</ComponentGroup>
 	</Fragment>
 	

@@ -1,28 +1,29 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Configuration;
-using System.Data;
-using Oracle.ManagedDataAccess.Client;
-using System.Diagnostics;
-using System.Linq;
 using System.ServiceProcess;
-using System.Text;
-using System.Threading.Tasks;
-using System.IO;
 using System.Timers;
 using Export;
 using NLog;
 
 namespace ExportService
 {
+    /// <summary>
+    /// Сервис регулярного выполнение экспорта
+    /// </summary>
     public partial class Service : ServiceBase
     {
-
+        /// <summary>
+        /// Сервис экспорта данных
+        /// </summary>
         private readonly IExport export;
 
+        /// <summary>
+        /// Таймер переодичности выполнения экспорта
+        /// </summary>
         Timer m_timer;
 
+        /// <summary>
+        /// Сервис логгирования
+        /// </summary>
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
         public Service(IExport export)
@@ -41,40 +42,33 @@ namespace ExportService
             
         }
 
-
+        /// <summary>
+        /// Выполнить экспорт данных
+        /// </summary>
         private void ExecuteExport()
         {
             var settingExecution = new SettingManager().GetSetting();
-            var tables = new SettingManager().GetSettingTable();
+            var queries = new SettingManager().GetSettingQueries();
 
-
-            foreach (var table in tables)
+            foreach (var query in queries)
             {
-                Setting setting = new Setting();
-                setting.FileName = table.FileName;
-                setting.Records = table.Records;
-                setting.DataCount = table.DataCount;
-                setting.Folder = table.Folder;
-                setting.Path = settingExecution.ExportPath.Path;
-                setting.Sftp = settingExecution.ExportPath.Sftp;
-                setting.Host = settingExecution.ExportPath.Host;
-                setting.Login = settingExecution.ExportPath.Login;
-                setting.Pass = settingExecution.ExportPath.Pass;
-
-                if (settingExecution.NowExport.On)
-                    new System.Threading.Thread(() => export.Execute(table.SqlQuery, setting)).Start();
+                var setting = CreateFillSetting(query, settingExecution);
 
                 m_timer = new Timer();
 
                 if (settingExecution.IsExecuteByHour)
                 {
-                    ExecuteByHour(settingExecution.ExecuteByHour.Hour, table.SqlQuery, setting);
+                    ExecuteByHour(settingExecution.ExecuteByHour.Hour, query.SqlQuery, setting);
                 }
                 else if (settingExecution.IsExecuteByDay)
                 {
-                    ExecuteByDay(settingExecution.ExecuteByDay.Day, settingExecution.ExecuteByDay.Time, table.SqlQuery, setting);
+                    ExecuteByDay(settingExecution.ExecuteByDay.Day, settingExecution.ExecuteByDay.Time, query.SqlQuery, setting);
                 }
                 m_timer.Start();
+
+                //Выполнить сейчас
+                if (settingExecution.NowExport.On)
+                    Export(query.SqlQuery, setting);
             }
         }
 
@@ -87,7 +81,7 @@ namespace ExportService
 
             logger.Debug($"Выполнение в интервале {hour} час");
 
-            m_timer.Elapsed += new ElapsedEventHandler((s, e) => export.Execute(query, setting));
+            m_timer.Elapsed += new ElapsedEventHandler((s, e) => Export(query, setting));
         }
 
         /// <summary>
@@ -95,7 +89,12 @@ namespace ExportService
         /// </summary>
         private void ExecuteByDay(int day, string time, string query, Setting setting)
         {
-            m_timer.Interval = GetMillisecondsNextTime(day, time);
+            //Если сегодняшнее время прошло, то выполнить через указанное кол-во дней
+            if (GetMillisecondsNextTime(0, time) > 0)
+                m_timer.Interval = GetMillisecondsNextTime(0, time);
+            else
+                m_timer.Interval = GetMillisecondsNextTime(day, time);
+
 
             logger.Debug($"Выполнение в {time} каждый {day} день");
 
@@ -109,7 +108,7 @@ namespace ExportService
         {
             m_timer.Interval = GetMillisecondsNextTime(day, time);
 
-            export.Execute(query, setting);
+            Export(query, setting);
         }
 
         /// <summary>
@@ -121,6 +120,41 @@ namespace ExportService
         private double GetMillisecondsNextTime(int day, string time)
         {
             return (DateTime.Parse(time).AddDays(day) - DateTime.Now).TotalMilliseconds;
+        }
+
+        /// <summary>
+        /// Выполнение экспорта и логгирование результата
+        /// </summary>
+        private void Export(string query, Setting setting)
+        {
+            var success = export.Execute(query, setting);
+
+            if (success)
+                logger.Debug($"Экспорт файла {setting.FileName} выполнен успешно");
+            else
+                logger.Debug($"Не удалось экспортировать данные для файла {setting.FileName}");
+        }
+
+        /// <summary>
+        /// Создание и заполнение Setting
+        /// </summary>
+        /// <param name="table">Настройки запроса</param>
+        /// <param name="settingExecution">Настройки регулярности выполнения</param>
+        /// <returns>Объект Setting</returns>
+        private Setting CreateFillSetting(SettingQuery table, SettingExecution settingExecution)
+        {
+            Setting setting = new Setting();
+            setting.FileName = table.FileName;
+            setting.Records = table.Records;
+            setting.DataCount = table.DataCount;
+            setting.Folder = table.Folder;
+            setting.Path = settingExecution.ExportPath.Path;
+            setting.Sftp = settingExecution.ExportPath.Sftp;
+            setting.Host = settingExecution.ExportPath.Host;
+            setting.Login = settingExecution.ExportPath.Login;
+            setting.Pass = settingExecution.ExportPath.Pass;
+
+            return setting;
         }
 
 

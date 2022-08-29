@@ -12,6 +12,9 @@ using NLog;
 
 namespace Export
 {
+    /// <summary>
+    /// Выполнение запроса и получение данных из БД Oracle
+    /// </summary>
     public class QueryOracle : IQuery
     {
         /// <summary>
@@ -19,12 +22,25 @@ namespace Export
         /// </summary>
         private int _maxDataCount = 500000;
 
+        /// <summary>
+        /// Сервис логгирования
+        /// </summary>
         private static Logger logger = LogManager.GetCurrentClassLogger();
 
+        /// <summary>
+        /// Полученные данные
+        /// </summary>
+        object[][] data;
+
+        /// <summary>
+        /// Выполнение запроса
+        /// </summary>
+        /// <param name="query">Строка sql запроса</param>
+        /// <param name="dataCount">Максимальное количество данных</param>
+        /// <returns></returns>
         public object[][] Execute(string query, int dataCount)
         {
-            object[][] data;
-
+            
             logger.Debug($"Начало получения данных по запросу: {query}");
 
             OracleDataReader reader;
@@ -38,11 +54,12 @@ namespace Export
                 reader.FetchSize = reader.RowSize * _maxDataCount;
 
                 object[] output = new object[reader.FieldCount];
-                data = new object[dataCount + 1][];
+                InitData(dataCount);
 
                 Stopwatch sws = new Stopwatch();
                 sws.Start();
 
+                //Заполнение названий полей
                 for (int i = 0; i < reader.FieldCount; i++)
                     output[i] = reader.GetName(i);
 
@@ -52,9 +69,15 @@ namespace Export
                 while (reader.Read())
                 {
                     j++;
+
+                    CheckResizeArray(j);
+
                     data[j] = new object[reader.FieldCount];
                     reader.GetValues(data[j]);
                 }
+
+                //Удаляем все пустые ячейки
+                data = data.Where(c => c != null).ToArray();
 
                 sws.Stop();
 
@@ -64,6 +87,27 @@ namespace Export
             return data;
         }
 
+        /// <summary>
+        /// Проверка индекса на переполнение массива данных
+        /// Если переполнен, то увеличить длину на 50%
+        /// </summary>
+        private void CheckResizeArray(int index)
+        {
+            if (index > data.Length - 1)
+                Array.Resize(ref data, (int)(data.Length * 0.5));
+        }
+
+        /// <summary>
+        /// Инициализация массива данных
+        /// </summary>
+        /// <param name="count">Количество значений</param>
+        private void InitData(int count)
+        {
+            if (count == 0)
+                count = 1000000;
+
+            data = new object[count + 1][];
+        }
 
     }
 }

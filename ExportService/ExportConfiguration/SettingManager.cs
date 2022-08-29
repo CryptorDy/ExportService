@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 
 namespace ExportService
 {
+    /// <summary>
+    /// Менеджер конфигурационных настроек
+    /// </summary>
     public class SettingManager
     {
 
@@ -20,6 +23,9 @@ namespace ExportService
                 throw new Exception("Ошибка чтения конфигурационного файла");
         }
 
+        /// <summary>
+        /// Получить настройки выполнения
+        /// </summary>
         public SettingExecution GetSetting()
         {
             var setting = new SettingExecution();
@@ -46,6 +52,7 @@ namespace ExportService
                 }
             }
 
+            //Выполнение по часам имеет приоритет
             if (IsExecuteByHour)
             {
                 setting.IsExecuteByHour = IsExecuteByHour;
@@ -61,19 +68,27 @@ namespace ExportService
             return setting;
         }
 
-        public List<SettingQuery> GetSettingTable()
+        /// <summary>
+        /// Получить коллекцию с настройками запросов
+        /// </summary>
+        public List<SettingQuery> GetSettingQueries()
         {
-            var tables = new List<SettingQuery>();
+            var queries = new List<SettingQuery>();
             foreach (ConfigurationSection section in _setting.Sections)
             {
                 if (section.GetType() == typeof(TableSection))
                 {
-                    tables.Add(BuilderSqlQuery(section));
+                    queries.Add(GetSettingQuery(section));
                 }
             }
-            return tables;
+            return queries;
         }
 
+        /// <summary>
+        /// Получить настройки выполнения по дням
+        /// </summary>
+        /// <param name="section">Секция данных</param>
+        /// <param name="IsExecuteByDay">Выходной аргумент. Включен выполнение по дням</param>
         private ExecuteByDay GetExecuteByDay(ConfigurationSection section, out bool IsExecuteByDay)
         {
             var executeByDay = section as ExecuteByDay;
@@ -84,9 +99,14 @@ namespace ExportService
             }
 
             IsExecuteByDay = true;
-            return new ExecuteByDay { Day = executeByDay.Day, Time = executeByDay.Time };
+            return executeByDay;
         }
 
+        /// <summary>
+        /// Получить настройки выполнения по часам
+        /// </summary>
+        /// <param name="section">Секция данных</param>
+        /// <param name="IsExecuteByHour">Выходной аргумент. Включен выполнение по часам</param>
         private ExecuteByHour GetExecuteByHour(ConfigurationSection section, out bool IsExecuteByHour)
         {
             var executeByHour = section as ExecuteByHour;
@@ -97,32 +117,21 @@ namespace ExportService
             }
 
             IsExecuteByHour = true;
-            return new ExecuteByHour { Hour = executeByHour.Hour };
+            return executeByHour;
         }
 
-        private SettingQuery BuilderSqlQuery(ConfigurationSection section)
+        /// <summary>
+        /// Получить настройки запроса
+        /// </summary>
+        /// <param name="section">Секция с конфигурационными настройками</param>
+        /// <returns>Настройки запроса со стракой запроса</returns>
+        private SettingQuery GetSettingQuery(ConfigurationSection section)
         {
             TableSection tableSetting = section as TableSection;
-            
-            var name = tableSetting.Name;
-            var select = tableSetting.Select != string.Empty ? tableSetting.Select : "*";
-            var where = tableSetting.Where;
-            var orderBy = tableSetting.OrderBy;
-            var limit = tableSetting.Limit;
 
-            CheckWord(name);
-            CheckSelect(select);
+            var limit = tableSetting.Limit.Value;
 
-            var query = $"Select {select} from {name}";
-
-            query += BuildWhereStr(where);
-
-            query += BuildOrderByStr(orderBy);
-
-            
-
-            if (limit != 0)
-                query = $"Select {select} from ({query}) where ROWNUM <= " + limit;
+            var query = new SqlBuilder().Builde(tableSetting);
 
             return new SettingQuery
             {
@@ -130,164 +139,7 @@ namespace ExportService
                 FileName = tableSetting.File.Name,
                 Folder = tableSetting.Folder,
                 Records = tableSetting.File.Records,
-                DataCount = tableSetting.Limit
-            };
-        }
-
-        private string BuildWhereStr(WhereElementCollection where)
-        {
-            var query = string.Empty;
-            if (where != null && where.Count > 0)
-            {
-                query += $" where ";
-                int i = 0;
-                foreach (WhereElement item in where)
-                {
-                    if (i != 0 && !string.IsNullOrWhiteSpace(item.Operator) && (item.Operator.Trim().Equals("OR") || item.Operator.Trim().Equals("AND")))
-                        query += $" {item.Operator} ";
-                    if (CheckWhere(item.Condition))
-                        query += item.Condition;
-
-                    i++;
-                }
-            }
-            return query;
-        }
-
-        private string BuildOrderByStr(OrderByElementCollection orderBy)
-        {
-            var query = string.Empty;
-            if (orderBy != null && orderBy.Count > 0)
-            {
-                query += $" order by";
-                int i = 0;
-                foreach (OrderByElement item in orderBy)
-                {
-                    if (i != 0)
-                        query += ",";
-
-                    if (CheckWord(item.Column))
-                    {
-                        string desc = item.Desc ? "DESC" : string.Empty;
-                        query += $" {item.Column} {desc}";
-                    }
-                    i++;
-                }
-            }
-
-            return query;
-        }
-
-        private bool CheckWord(string str)
-        {
-
-            if (SqlKeywords().Any(c => str.Contains(c)))
-                throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
-
-            if (!Regex.Match(str, @"^[a-zA-Z_]{1,25}$").Success)
-                throw new Exception($"Строка {str} содержит недопустимые символы");
-
-            return true;
-        }
-
-        private bool CheckWhere(string str)
-        {
-
-            var words = SplitToWords(str);
-
-            if (SqlKeywords().Any(c => words.Any(x => x.Equals(c))))
-                throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
-
-            if (!Regex.Match(str, @"^[a-zA-Z_\s]+[\=|>=|<=]{1,2}[\sa-zA-Z0-9]{1,}$").Success)
-                throw new Exception($"Строка {str} содержит недопустимые символы");
-
-            return true;
-        }
-
-        private bool CheckSelect(string str)
-        {
-            if (str.Equals("*"))
-                return true;
-
-            if (SqlKeywords().Any(c => str.Contains(c)))
-                throw new Exception($"Строка {str} содержит недопустимые ключевые слова");
-
-            if (!Regex.Match(str, @"^[a-zA-Z,\s]{1,}$").Success)
-                throw new Exception($"Строка {str} содержит недопустимые символы");
-
-            return true;
-        }
-
-        private string[] SplitToWords(string str)
-        {
-            str = str.Replace("  ", " ");
-            str = str.Replace("   ", " ");
-
-            return str.Split(new char[] { ' ' });
-        }
-
-        private string[] SqlKeywords()
-        {
-            return new string[] {
-                "ADD",
-                "CONSTRAINT",
-                "ALL",
-                "ALTER",
-                "TABLE",
-                "AND",
-                "ANY",
-                "AS",
-                "ASC",
-                "BACKUP DATABASE",
-                "BETWEEN",
-                "CASE",
-                "CHECK",
-                "COLUMN",
-                "CONSTRAINT",
-                "CREATE",
-                "DATABASE",
-                "PROCEDURE",
-                "UNIQUE",
-                "INDEX",
-                "VIEW",
-                "DEFAULT",
-                "DELETE",
-                "DESC",
-                "DISTINCT",
-                "DROP",
-                "EXEC",
-                "EXISTS",
-                "FOREIGN",
-                "KEY",
-                "FROM",
-                "FULL",
-                "OUTER",
-                "JOIN",
-                "GROUP",
-                "BY",
-                "HAVING",
-                "IN",
-                "INNER",
-                "INSERT",
-                "INTO",
-                "SELECT",
-                "IS",
-                "NULL",
-                "NOT",
-                "LIKE",
-                "LIMIT",
-                "OR",
-                "AND",
-                "ORDER",
-                "PRIMARY",
-                "PROCEDURE",
-                "RIGHT",
-                "LEFT",
-                "TOP",
-                "VALUES",
-                "UPDATE",
-                "ROWNUM",
-                "SET"
+                DataCount = limit
             };
         }
     }

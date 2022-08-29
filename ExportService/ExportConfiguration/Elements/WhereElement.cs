@@ -9,18 +9,32 @@ namespace ExportService
 {
     public class WhereElement : ConfigurationElement
     {
-        [ConfigurationProperty("condition", IsRequired = true)]
-        public string Condition
+        [ConfigurationProperty("column", IsRequired = true)]
+        public string Column
         {
-            get { return (string)this["condition"]; }
-            set { this["condition"] = value; }
+            get { return (string)this["column"]; }
+            set { this["column"] = value; }
         }
 
-        [ConfigurationProperty("operator", DefaultValue = "AND", IsRequired = false)]
+        [ConfigurationProperty("operator", DefaultValue = "=", IsRequired = true)]
         public string Operator
         {
             get { return (string)this["operator"]; }
             set { this["operator"] = value; }
+        }
+
+        [ConfigurationProperty("value", DefaultValue = "", IsRequired = true)]
+        public string Value
+        {
+            get { return (string)this["value"]; }
+            set { this["value"] = value; }
+        }
+
+        [ConfigurationProperty("and", DefaultValue = false, IsRequired = false)]
+        public bool And
+        {
+            get { return (bool)this["and"]; }
+            set { this["and"] = value; }
         }
 
     }

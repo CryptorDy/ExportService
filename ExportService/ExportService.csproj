@@ -139,7 +139,6 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ExecuteExport.cs" />
     <Compile Include="ExportConfiguration\Elements\FileElement .cs" />
     <Compile Include="ExportConfiguration\Elements\OrderByElement.cs" />
     <Compile Include="ExportConfiguration\Elements\OrderByElementCollection.cs" />
@@ -149,6 +148,7 @@
     <Compile Include="ExportConfiguration\ExecuteByHour.cs" />
     <Compile Include="ExportConfiguration\ExportPath.cs" />
     <Compile Include="ExportConfiguration\ExportSetting.cs" />
+    <Compile Include="ExportConfiguration\SqlBuilder.cs" />
     <Compile Include="ExportConfiguration\TableSection.cs" />
     <Compile Include="ExportConfiguration\NowExport.cs" />
     <Compile Include="Models\SettingExecution.cs" />

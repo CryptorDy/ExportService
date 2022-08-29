@@ -49,7 +49,7 @@ namespace Export
                 recordsFile = new string[countRecords + 1];
                 recordsFile[0] = GetNameColumns(data);
 
-                FillingRecordsFile(ref recordsFile, data, dataIndex);
+                FillingRecordsFile(ref recordsFile, data, ref dataIndex);
 
                 string pathFile = path + "/" + GetFileName(fileNumber, setting.FileName);
 
@@ -70,7 +70,7 @@ namespace Export
         /// <param name="recordsFile">Массива строк файла</param>
         /// <param name="data">Источник данных</param>
         /// <param name="dataIndex">Индекс источника данных</param>
-        private void FillingRecordsFile(ref string[] recordsFile, object[][] data, int dataIndex)
+        private void FillingRecordsFile(ref string[] recordsFile, object[][] data, ref int dataIndex)
         {
             for (int j = 1; j < recordsFile.Length; j++)
             {

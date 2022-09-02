@@ -106,9 +106,18 @@ namespace ExportService
         /// </summary>
         private void ExecuteAndUpdateInterval(int day, string time, string query, Setting setting)
         {
-            m_timer.Interval = GetMillisecondsNextTime(day, time);
+            m_timer.Enabled = false;
 
-            Export(query, setting);
+            try
+            {
+                Export(query, setting);
+            } catch (Exception ex)
+            {
+                logger.Debug(ex);
+            }
+
+            m_timer.Interval = GetMillisecondsNextTime(day, time);
+            m_timer.Enabled = true;
         }
 
         /// <summary>
@@ -119,7 +128,7 @@ namespace ExportService
         /// <returns>Миллисекунды</returns>
         private double GetMillisecondsNextTime(int day, string time)
         {
-            return (DateTime.Parse(time).AddDays(day) - DateTime.Now).TotalMilliseconds;
+            return 60000; //(DateTime.Parse(time).AddDays(day) - DateTime.Now).TotalMilliseconds;
         }
 
         /// <summary>
